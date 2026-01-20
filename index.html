@@ -88,27 +88,33 @@
       const inputText = document.getElementById('inputText').value;
       if (!inputText.trim()) return;
 
+      // Split on whitespace, keeping the whitespace as separate tokens
       const tokens = inputText.split(/(\s+)/);
       words = tokens.map((token, index) => {
         const isSpace = /^\s+$/.test(token);
-        const match = token.match(/^([^\w]*)(\w+)([^\w]*)$/);
+        
+        // Match: leading punctuation, word (including apostrophes and hyphens), trailing punctuation
+        // Word can contain letters, numbers, apostrophes, and hyphens
+        const match = token.match(/^([^\w''-]*)(['\w'-]+['\w'-]*)([^\w''-]*)$/);
 
         let suffix = '';
-        let wordBase = match ? match[2] : token;
+        let wordContent = match ? match[2] : token;
 
-        if (match) {
-          if (wordBase.toLowerCase().endsWith('ing') && wordBase.length > 3) {
-            suffix = wordBase.slice(-3);
-            wordBase = wordBase.slice(0, -3);
-          } else if (wordBase.toLowerCase().endsWith('ed') && wordBase.length > 2) {
-            suffix = wordBase.slice(-2);
-            wordBase = wordBase.slice(0, -2);
-          } else if (wordBase.endsWith("'s") && wordBase.length > 2) {
-            suffix = wordBase.slice(-2);
-            wordBase = wordBase.slice(0, -2);
-          } else if (wordBase.toLowerCase().endsWith('s') && wordBase.length > 1) {
-            suffix = wordBase.slice(-1);
-            wordBase = wordBase.slice(0, -1);
+        if (match && wordContent) {
+          // Check for suffixes in order of length (longest first)
+          // But don't strip suffix if it would leave nothing or just punctuation
+          if (wordContent.toLowerCase().endsWith('ing') && wordContent.replace(/[^a-zA-Z]/g, '').length > 3) {
+            suffix = wordContent.slice(-3);
+            wordContent = wordContent.slice(0, -3);
+          } else if (wordContent.toLowerCase().endsWith('ed') && wordContent.replace(/[^a-zA-Z]/g, '').length > 2) {
+            suffix = wordContent.slice(-2);
+            wordContent = wordContent.slice(0, -2);
+          } else if (wordContent.endsWith("'s") && wordContent.length > 2) {
+            suffix = wordContent.slice(-2);
+            wordContent = wordContent.slice(0, -2);
+          } else if (wordContent.toLowerCase().endsWith('s') && wordContent.replace(/[^a-zA-Z]/g, '').length > 1 && !wordContent.toLowerCase().endsWith("'s")) {
+            suffix = wordContent.slice(-1);
+            wordContent = wordContent.slice(0, -1);
           }
         }
 
@@ -117,12 +123,12 @@
           original: token,
           leadingPunct: match ? match[1] : '',
           word: match ? match[2] : token,
-          wordBase: wordBase,
+          wordBase: wordContent,
           suffix: suffix,
           trailingPunct: match ? match[3] : '',
           isBlanked: false,
           isSpace: isSpace,
-          isWord: match !== null
+          isWord: match !== null && match[2] && match[2].length > 0
         };
       });
 
