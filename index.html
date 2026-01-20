@@ -84,35 +84,44 @@
   <script>
     let words = [];
 
+    // All types of apostrophes and quotes that might appear in contractions
+    const apostrophes = "'''`ʼʻ";
+    const wordChars = `\\w${apostrophes}\\-–—`;
+
     function convertText() {
       const inputText = document.getElementById('inputText').value;
       if (!inputText.trim()) return;
 
       // Split on whitespace, keeping the whitespace as separate tokens
       const tokens = inputText.split(/(\s+)/);
+      
+      // Regex to match: leading punctuation, word content, trailing punctuation
+      const wordRegex = new RegExp(`^([^${wordChars}]*)([${wordChars}]+)([^${wordChars}]*)$`);
+      
+      // Regex to detect possessive 's with any apostrophe type
+      const possessiveRegex = new RegExp(`[${apostrophes}]s$`, 'i');
+      
       words = tokens.map((token, index) => {
         const isSpace = /^\s+$/.test(token);
-        
-        // Match: leading punctuation, word (including apostrophes and hyphens), trailing punctuation
-        // Word can contain letters, numbers, apostrophes, and hyphens
-        const match = token.match(/^([^\w''-]*)(['\w'-]+['\w'-]*)([^\w''-]*)$/);
+        const match = token.match(wordRegex);
 
         let suffix = '';
         let wordContent = match ? match[2] : token;
 
         if (match && wordContent) {
           // Check for suffixes in order of length (longest first)
-          // But don't strip suffix if it would leave nothing or just punctuation
-          if (wordContent.toLowerCase().endsWith('ing') && wordContent.replace(/[^a-zA-Z]/g, '').length > 3) {
+          const letterCount = wordContent.replace(/[^a-zA-Z]/g, '').length;
+          
+          if (wordContent.toLowerCase().endsWith('ing') && letterCount > 3) {
             suffix = wordContent.slice(-3);
             wordContent = wordContent.slice(0, -3);
-          } else if (wordContent.toLowerCase().endsWith('ed') && wordContent.replace(/[^a-zA-Z]/g, '').length > 2) {
+          } else if (wordContent.toLowerCase().endsWith('ed') && letterCount > 2) {
             suffix = wordContent.slice(-2);
             wordContent = wordContent.slice(0, -2);
-          } else if (wordContent.endsWith("'s") && wordContent.length > 2) {
+          } else if (possessiveRegex.test(wordContent) && wordContent.length > 2) {
             suffix = wordContent.slice(-2);
             wordContent = wordContent.slice(0, -2);
-          } else if (wordContent.toLowerCase().endsWith('s') && wordContent.replace(/[^a-zA-Z]/g, '').length > 1 && !wordContent.toLowerCase().endsWith("'s")) {
+          } else if (wordContent.toLowerCase().endsWith('s') && letterCount > 1 && !possessiveRegex.test(wordContent)) {
             suffix = wordContent.slice(-1);
             wordContent = wordContent.slice(0, -1);
           }
